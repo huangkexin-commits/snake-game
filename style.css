@@ -24,3 +24,6 @@ h1{margin:0 0 14px;letter-spacing:.12em}
 #ranks li:first-child{color:var(--warn);font-weight:800}
 
 #ver{margin:10px 0 0;color:#8aa0bf;font-size:12px}
+
+#mute{margin-right:8px;background:#20344d;color:var(--ink);border:0;border-radius:10px;padding:6px 12px}
+#mute.off{opacity:.45}

@@ -10,6 +10,43 @@ const overMsg=document.getElementById('over-msg');
 const pauseBtn=document.getElementById('pause');
 const CELL=20, COLS=canvas.width/CELL, ROWS=canvas.height/CELL;
 const RANK_KEY='snake-top5';
+
+const muteBtn=document.getElementById('mute');
+let audioCtx=null, muted=localStorage.getItem('snake-mute')==='1';
+function unlockAudio(){
+  const AC=window.AudioContext||window.webkitAudioContext;
+  if(!AC) return;
+  if(!audioCtx) audioCtx=new AC();
+  if(audioCtx.state==='suspended') audioCtx.resume();
+}
+function beep(freq,dur,type,vol){
+  if(muted||!audioCtx) return;
+  const o=audioCtx.createOscillator();
+  const g=audioCtx.createGain();
+  o.type=type||'square';
+  o.frequency.setValueAtTime(freq, audioCtx.currentTime);
+  g.gain.setValueAtTime(vol||0.05, audioCtx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime+dur);
+  o.connect(g); g.connect(audioCtx.destination);
+  o.start(); o.stop(audioCtx.currentTime+dur);
+}
+function sfxEat(){ beep(720,0.06,'square',0.045); setTimeout(()=>beep(980,0.07,'square',0.04),45); }
+function sfxDie(){ beep(240,0.16,'sawtooth',0.05); setTimeout(()=>beep(140,0.22,'sawtooth',0.045),110); }
+function sfxStart(){ beep(523,0.07,'triangle',0.045); setTimeout(()=>beep(784,0.1,'triangle',0.045),70); }
+function renderMute(){ if(muteBtn){ muteBtn.classList.toggle('off', muted); muteBtn.style.opacity=muted?'0.45':'1'; } }
+renderMute();
+if(muteBtn){
+  muteBtn.addEventListener('click', e=>{
+    e.preventDefault();
+    muted=!muted;
+    localStorage.setItem('snake-mute', muted?'1':'0');
+    if(!muted) unlockAudio();
+    renderMute();
+  });
+}
+if(!CanvasRenderingContext2D.prototype.roundRect){
+  CanvasRenderingContext2D.prototype.roundRect=function(x,y,w,h){ this.rect(x,y,w,h); };
+}
 let snake,dir,nextDir,food,score,best,ticking,paused,dead,started,touchStart,ranks,particles,tickMs;
 function loadRanks(){
   let arr=[];
@@ -116,6 +153,7 @@ function die(){
   dead=true; paused=false; started=true;
   stopLoop();
   recordScore(score);
+  sfxDie();
   setCover(true, 'Score '+score+'   Best '+best);
 }
 function step(){
@@ -128,7 +166,7 @@ function step(){
   if(head.x===food.x&&head.y===food.y){
     score+=1; scoreEl.textContent=String(score);
     if(score>best){ best=score; bestEl.textContent=String(best); }
-    burst(food.x,food.y);
+    burst(food.x,food.y); sfxEat();
     placeFood();
     tickMs=Math.max(70, 140-Math.floor(score/3)*8);
     startLoop();
@@ -139,6 +177,8 @@ function step(){
 }
 function restart(firstDir){
   started=true;
+  unlockAudio();
+  sfxStart();
   reset(firstDir);
   setCover(false);
   overlay.textContent='';
@@ -154,6 +194,7 @@ function applyDir(nd){
 }
 const keymap={ArrowUp:{x:0,y:-1},ArrowDown:{x:0,y:1},ArrowLeft:{x:-1,y:0},ArrowRight:{x:1,y:0},w:{x:0,y:-1},a:{x:-1,y:0},s:{x:0,y:1},d:{x:1,y:0},W:{x:0,y:-1},A:{x:-1,y:0},S:{x:0,y:1},D:{x:1,y:0}};
 document.addEventListener('keydown',e=>{
+  unlockAudio();
   if(e.key===' '||e.code==='Space'||e.key==='Enter'){
     e.preventDefault();
     if(!started||dead){ restart(); return; }
@@ -163,14 +204,14 @@ document.addEventListener('keydown',e=>{
   }
   applyDir(keymap[e.key]);
 });
-againBtn.addEventListener('click', e=>{ e.preventDefault(); restart(); });
+againBtn.addEventListener('click', e=>{ e.preventDefault(); unlockAudio(); restart(); });
 pauseBtn.addEventListener('click', ()=>{
   if(!started||dead) return;
   paused=!paused;
   overlay.textContent=paused?'Paused':'';
 });
 function touchPoint(e){ const t=e.changedTouches[0]; return {x:t.clientX,y:t.clientY}; }
-canvas.addEventListener('touchstart',e=>{ e.preventDefault(); touchStart=touchPoint(e); },{passive:false});
+canvas.addEventListener('touchstart',e=>{ e.preventDefault(); unlockAudio(); touchStart=touchPoint(e); },{passive:false});
 canvas.addEventListener('touchmove',e=>{ e.preventDefault(); },{passive:false});
 canvas.addEventListener('touchend',e=>{
   e.preventDefault();
