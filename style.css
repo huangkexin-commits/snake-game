@@ -1,1 +1,18 @@
-*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:#12141a;color:#e8edf7;font-family:Segoe UI,Microsoft YaHei,sans-serif}main{max-width:440px;margin:24px auto;padding:16px;background:#1c212c;border-radius:16px;text-align:center}h1{margin:0 0 12px;font-size:28px}.scores{display:flex;gap:12px;margin:0 0 8px}.score-box{flex:1;background:#12141a;border-radius:12px;padding:10px 8px}.score-box .label{color:#8b95a8;font-size:12px}.score-box .num{font-size:32px;font-weight:700;line-height:1.2;color:#6ee7b7}.score-box:last-child .num{color:#fde68a}.hud{margin:4px 0;color:#8b95a8;font-size:14px}#board{display:block;margin:16px auto 8px;background:#0e1116;border-radius:8px;width:100%;max-width:400px;height:auto;touch-action:none}#overlay{min-height:1.4em;margin:8px 0 0;color:#fde68a}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:#12141a;color:#e8edf7;font-family:Segoe UI,Microsoft YaHei,sans-serif}
+main{max-width:440px;margin:24px auto;padding:16px;background:#1c212c;border-radius:16px;text-align:center}
+h1{margin:0 0 12px;font-size:28px}
+.scores{display:flex;gap:12px;margin:0 0 8px}
+.score-box{flex:1;background:#12141a;border-radius:12px;padding:10px 8px}
+.score-box .label{color:#8b95a8;font-size:12px}
+.score-box .num{font-size:32px;font-weight:700;line-height:1.2;color:#6ee7b7}
+.score-box:last-child .num{color:#fde68a}
+.hud{margin:4px 0;color:#8b95a8;font-size:14px}
+#board{display:block;margin:16px auto 8px;background:#0e1116;border-radius:8px;width:100%;max-width:400px;height:auto;touch-action:none}
+#overlay{min-height:1.4em;margin:8px 0 0;color:#fde68a}
+.board-wrap{margin-top:16px;text-align:left;background:#12141a;border-radius:12px;padding:12px 14px}
+.board-wrap h2{margin:0 0 8px;font-size:16px;text-align:center}
+#ranks{list-style:none;margin:0;padding:0}
+#ranks li{display:flex;justify-content:space-between;padding:6px 4px;border-bottom:1px solid #2a3140;font-size:16px}
+#ranks li:first-child{color:#fde68a;font-weight:700}
+.note{margin:8px 0 0;color:#8b95a8;font-size:12px;text-align:center}

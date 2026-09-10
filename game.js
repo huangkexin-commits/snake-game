@@ -3,10 +3,46 @@ const ctx=canvas.getContext('2d');
 const scoreEl=document.getElementById('score');
 const bestEl=document.getElementById('best');
 const overlay=document.getElementById('overlay');
+const ranksEl=document.getElementById('ranks');
 const CELL=20, COLS=canvas.width/CELL, ROWS=canvas.height/CELL;
-let snake,dir,nextDir,food,score,best,ticking,paused,dead,touchStart;
-best=Number(localStorage.getItem('snake-best')||0);
-bestEl.textContent=best;
+const RANK_KEY='snake-top5';
+let snake,dir,nextDir,food,score,best,ticking,paused,dead,touchStart,ranks;
+function loadRanks(){
+  let arr=[];
+  try { arr=JSON.parse(localStorage.getItem(RANK_KEY)||'[]'); } catch(e) { arr=[]; }
+  if(!Array.isArray(arr)) arr=[];
+  arr=arr.map(Number).filter(n=>Number.isFinite(n)&&n>0);
+  const old=Number(localStorage.getItem('snake-best')||0);
+  if(old>0 && !arr.includes(old)) arr.push(old);
+  arr.sort((a,b)=>b-a);
+  return arr.slice(0,5);
+}
+function saveRanks(){
+  localStorage.setItem(RANK_KEY, JSON.stringify(ranks));
+  if(ranks[0]) localStorage.setItem('snake-best', String(ranks[0]));
+}
+function renderRanks(){
+  ranksEl.innerHTML='';
+  for(let i=0;i<5;i++){
+    const li=document.createElement('li');
+    const n=ranks[i];
+    li.innerHTML='<span>#'+(i+1)+'</span><span>'+(n==null?'--':n)+'</span>';
+    ranksEl.appendChild(li);
+  }
+  best=ranks[0]||0;
+  bestEl.textContent=String(best);
+}
+function recordScore(n){
+  if(n>0){
+    ranks.push(n);
+    ranks.sort((a,b)=>b-a);
+    ranks=ranks.slice(0,5);
+    saveRanks();
+  }
+  renderRanks();
+}
+ranks=loadRanks();
+renderRanks();
 function reset(){
   const cx=Math.floor(COLS/2),cy=Math.floor(ROWS/2);
   snake=[{x:cx,y:cy},{x:cx-1,y:cy},{x:cx-2,y:cy}];
@@ -37,7 +73,11 @@ function draw(){
   drawCell(food.x,food.y,'#fb7185');
   snake.forEach((p,i)=>drawCell(p.x,p.y,i===0?'#34d399':'#6ee7b7'));
 }
-function die(){dead=true;overlay.textContent='Score '+score+'  Best '+best+'. Tap or space to restart';}
+function die(){
+  dead=true;
+  recordScore(score);
+  overlay.textContent='Score '+score+'  Best '+best+'. Tap or space to restart';
+}
 function step(){
   if(!ticking||paused||dead)return;
   dir=nextDir;
@@ -48,7 +88,7 @@ function step(){
   if(head.x===food.x&&head.y===food.y){
     score+=1;
     scoreEl.textContent=String(score);
-    if(score>best){best=score;bestEl.textContent=String(best);localStorage.setItem('snake-best',String(best));}
+    if(score>best){best=score;bestEl.textContent=String(best);}
     placeFood();
   } else { snake.pop(); }
   draw();
