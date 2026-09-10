@@ -22,3 +22,5 @@ h1{margin:0 0 14px;letter-spacing:.12em}
 #ranks{list-style:none;margin:0;padding:0}
 #ranks li{display:flex;justify-content:space-between;padding:7px 2px;border-bottom:1px solid #1e334d}
 #ranks li:first-child{color:var(--warn);font-weight:800}
+
+#ver{margin:10px 0 0;color:#8aa0bf;font-size:12px}
