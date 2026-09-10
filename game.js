@@ -4,7 +4,7 @@ const scoreEl=document.getElementById('score');
 const bestEl=document.getElementById('best');
 const overlay=document.getElementById('overlay');
 const CELL=20, COLS=canvas.width/CELL, ROWS=canvas.height/CELL;
-let snake,dir,nextDir,food,score,best,ticking,paused,dead;
+let snake,dir,nextDir,food,score,best,ticking,paused,dead,touchStart;
 best=Number(localStorage.getItem('snake-best')||0);
 bestEl.textContent=best;
 function reset(){
@@ -37,7 +37,7 @@ function draw(){
   drawCell(food.x,food.y,'#fb7185');
   snake.forEach((p,i)=>drawCell(p.x,p.y,i===0?'#34d399':'#6ee7b7'));
 }
-function die(){dead=true;overlay.textContent='Game over. Space to restart';}
+function die(){dead=true;overlay.textContent='Game over. Tap or space to restart';}
 function step(){
   if(!ticking||paused||dead)return;
   dir=nextDir;
@@ -54,23 +54,51 @@ function step(){
   draw();
 }
 function startLoop(){if(ticking)return;ticking=setInterval(step,120);}
+function restart(){
+  overlay.textContent='';
+  reset();
+  draw();
+  startLoop();
+}
+function applyDir(nd){
+  if(!nd)return;
+  if(dead)return;
+  if(nd.x===-dir.x&&nd.y===-dir.y)return;
+  nextDir=nd;
+  if(!ticking){overlay.textContent='';startLoop();}
+}
 const keymap={ArrowUp:{x:0,y:-1},ArrowDown:{x:0,y:1},ArrowLeft:{x:-1,y:0},ArrowRight:{x:1,y:0},w:{x:0,y:-1},a:{x:-1,y:0},s:{x:0,y:1},d:{x:1,y:0},W:{x:0,y:-1},A:{x:-1,y:0},S:{x:0,y:1},D:{x:1,y:0}};
 document.addEventListener('keydown',e=>{
   if(e.key===' '||e.code==='Space'){
     e.preventDefault();
-    if(dead){overlay.textContent='';reset();draw();startLoop();return;}
+    if(dead){restart();return;}
     if(!ticking)return;
     paused=!paused;
     overlay.textContent=paused?'Paused':'';
     return;
   }
-  const nd=keymap[e.key];
-  if(!nd)return;
-  e.preventDefault();
-  if(dead)return;
-  if(nd.x===-dir.x&&nd.y===-dir.y)return;
-  nextDir=nd;
-  if(!ticking){overlay.textContent='';startLoop();}
+  applyDir(keymap[e.key]);
 });
+function touchPoint(e){
+  const t=e.changedTouches[0];
+  return {x:t.clientX,y:t.clientY};
+}
+canvas.addEventListener('touchstart',e=>{
+  e.preventDefault();
+  touchStart=touchPoint(e);
+},{passive:false});
+canvas.addEventListener('touchmove',e=>{e.preventDefault();},{passive:false});
+canvas.addEventListener('touchend',e=>{
+  e.preventDefault();
+  if(!touchStart)return;
+  const end=touchPoint(e);
+  const dx=end.x-touchStart.x;
+  const dy=end.y-touchStart.y;
+  touchStart=null;
+  if(dead){restart();return;}
+  if(Math.abs(dx)<20&&Math.abs(dy)<20)return;
+  if(Math.abs(dx)>Math.abs(dy)) applyDir({x:dx>0?1:-1,y:0});
+  else applyDir({x:0,y:dy>0?1:-1});
+},{passive:false});
 reset();
 draw();
