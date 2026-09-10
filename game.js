@@ -37,7 +37,7 @@ function draw(){
   drawCell(food.x,food.y,'#fb7185');
   snake.forEach((p,i)=>drawCell(p.x,p.y,i===0?'#34d399':'#6ee7b7'));
 }
-function die(){dead=true;overlay.textContent='Game over. Tap or space to restart';}
+function die(){dead=true;overlay.textContent='Score '+score+'  Best '+best+'. Tap or space to restart';}
 function step(){
   if(!ticking||paused||dead)return;
   dir=nextDir;

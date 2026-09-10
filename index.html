@@ -3,16 +3,19 @@
 <head>
 <meta charset=UTF-8 />
 <meta name=viewport content=width=device-width,initial-scale=1 />
-<title>Snake</title>
+<title>贪吃蛇</title>
 <link rel=stylesheet href=style.css />
 </head>
 <body>
 <main>
-<h1>Snake</h1>
-<p class=hud>Score <span id=score>0</span> / Best <span id=best>0</span></p>
-<p class=hud>Swipe on phone. Arrows/WASD on computer. Space to pause.</p>
+<h1>贪吃蛇</h1>
+<div class=scores>
+<div class=score-box><div class=label>本局</div><div class=num id=score>0</div></div>
+<div class=score-box><div class=label>最高</div><div class=num id=best>0</div></div>
+</div>
+<p class=hud>Swipe / WASD / arrows</p>
 <canvas id=board width=400 height=400></canvas>
-<p id=overlay>Swipe or press an arrow to start</p>
+<p id=overlay>Go</p>
 </main>
 <script src=game.js></script>
 </body>
