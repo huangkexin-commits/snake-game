@@ -1,28 +1,32 @@
 <!DOCTYPE html>
-<html lang=zh-CN>
+<html lang="zh-CN">
 <head>
-<meta charset=UTF-8 />
-<meta name=viewport content=width=device-width,initial-scale=1 />
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
 <title>贪吃蛇</title>
-<link rel=stylesheet href=style.css />
+<link rel="stylesheet" href="style.css" />
 </head>
 <body>
 <main>
 <h1>贪吃蛇</h1>
-<div class=scores>
-<div class=score-box><div class=label>本局</div><div class=num id=score>0</div></div>
-<div class=score-box><div class=label>最高</div><div class=num id=best>0</div></div>
+<div class="scores">
+  <div class="score-box"><div class="label">本局</div><div class="num" id="score">0</div></div>
+  <div class="score-box"><div class="label">最高</div><div class="num" id="best">0</div></div>
 </div>
-<p class=hud>Swipe / WASD / arrows</p>
-<canvas id=board width=400 height=400></canvas>
-<p id=overlay>Go</p>
-<p><button type="button" id="again" hidden>Play again</button></p>
-<section class=board-wrap>
-<h2>排行榜</h2>
-<ol id=ranks></ol>
-<p class=note>Top 5 on this phone/computer</p>
+<p class="hud">Swipe / WASD / arrows</p>
+<div class="stage">
+  <canvas id="board" width="400" height="400"></canvas>
+  <div id="cover" hidden>
+    <p id="over-msg"></p>
+    <button type="button" id="again">再来一局</button>
+  </div>
+</div>
+<p id="overlay">Go</p>
+<section class="board-wrap">
+  <h2>排行榜</h2>
+  <ol id="ranks"></ol>
 </section>
 </main>
-<script src=game.js></script>
+<script src="game.js?v=3"></script>
 </body>
 </html>

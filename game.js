@@ -5,6 +5,8 @@ const bestEl=document.getElementById('best');
 const overlay=document.getElementById('overlay');
 const ranksEl=document.getElementById('ranks');
 const againBtn=document.getElementById('again');
+const cover=document.getElementById('cover');
+const overMsg=document.getElementById('over-msg');
 const CELL=20, COLS=canvas.width/CELL, ROWS=canvas.height/CELL;
 const RANK_KEY='snake-top5';
 let snake,dir,nextDir,food,score,best,ticking,paused,dead,touchStart,ranks;
@@ -44,11 +46,16 @@ function recordScore(n){
 }
 ranks=loadRanks();
 renderRanks();
-function reset(){
+function reset(firstDir){
   const cx=Math.floor(COLS/2),cy=Math.floor(ROWS/2);
-  snake=[{x:cx,y:cy},{x:cx-1,y:cy},{x:cx-2,y:cy}];
-  dir={x:1,y:0};
-  nextDir={x:1,y:0};
+  const d=firstDir||{x:1,y:0};
+  snake=[
+    {x:cx,y:cy},
+    {x:cx-d.x,y:cy-d.y},
+    {x:cx-2*d.x,y:cy-2*d.y}
+  ];
+  dir=d;
+  nextDir=d;
   score=0;
   scoreEl.textContent='0';
   paused=false;
@@ -81,13 +88,18 @@ function startLoop(){
   if(ticking) return;
   ticking=setInterval(step,120);
 }
+function showCover(show){
+  if(!cover) return;
+  cover.hidden=!show;
+}
 function die(){
   dead=true;
   paused=false;
   stopLoop();
   recordScore(score);
-  overlay.textContent='Score '+score+'  Best '+best;
-  if(againBtn) againBtn.hidden=false;
+  overlay.textContent='';
+  if(overMsg) overMsg.textContent='Score '+score+'   Best '+best;
+  showCover(true);
 }
 function step(){
   if(!ticking||paused||dead)return;
@@ -106,10 +118,9 @@ function step(){
 }
 function restart(firstDir){
   stopLoop();
+  showCover(false);
   overlay.textContent='';
-  if(againBtn) againBtn.hidden=true;
-  reset();
-  if(firstDir){ dir=firstDir; nextDir=firstDir; }
+  reset(firstDir);
   draw();
   startLoop();
 }
@@ -122,7 +133,7 @@ function applyDir(nd){
 }
 const keymap={ArrowUp:{x:0,y:-1},ArrowDown:{x:0,y:1},ArrowLeft:{x:-1,y:0},ArrowRight:{x:1,y:0},w:{x:0,y:-1},a:{x:-1,y:0},s:{x:0,y:1},d:{x:1,y:0},W:{x:0,y:-1},A:{x:-1,y:0},S:{x:0,y:1},D:{x:1,y:0}};
 document.addEventListener('keydown',e=>{
-  if(e.key===' '||e.code==='Space'){
+  if(e.key===' '||e.code==='Space'||e.key==='Enter'){
     e.preventDefault();
     if(dead){ restart(); return; }
     if(!ticking) return;
@@ -133,7 +144,13 @@ document.addEventListener('keydown',e=>{
   applyDir(keymap[e.key]);
 });
 if(againBtn){
-  againBtn.addEventListener('click',()=>restart());
+  againBtn.addEventListener('click', e=>{ e.preventDefault(); restart(); });
+}
+if(cover){
+  cover.addEventListener('click', e=>{
+    if(e.target===againBtn) return;
+    if(dead) restart();
+  });
 }
 function touchPoint(e){
   const t=e.changedTouches[0];
@@ -160,4 +177,4 @@ canvas.addEventListener('touchend',e=>{
 },{passive:false});
 reset();
 draw();
-if(againBtn) againBtn.hidden=true;
+showCover(false);
