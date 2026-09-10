@@ -4,6 +4,7 @@ const scoreEl=document.getElementById('score');
 const bestEl=document.getElementById('best');
 const overlay=document.getElementById('overlay');
 const ranksEl=document.getElementById('ranks');
+const againBtn=document.getElementById('again');
 const CELL=20, COLS=canvas.width/CELL, ROWS=canvas.height/CELL;
 const RANK_KEY='snake-top5';
 let snake,dir,nextDir,food,score,best,ticking,paused,dead,touchStart,ranks;
@@ -73,10 +74,20 @@ function draw(){
   drawCell(food.x,food.y,'#fb7185');
   snake.forEach((p,i)=>drawCell(p.x,p.y,i===0?'#34d399':'#6ee7b7'));
 }
+function stopLoop(){
+  if(ticking){ clearInterval(ticking); ticking=null; }
+}
+function startLoop(){
+  if(ticking) return;
+  ticking=setInterval(step,120);
+}
 function die(){
   dead=true;
+  paused=false;
+  stopLoop();
   recordScore(score);
-  overlay.textContent='Score '+score+'  Best '+best+'. Tap or space to restart';
+  overlay.textContent='Score '+score+'  Best '+best;
+  if(againBtn) againBtn.hidden=false;
 }
 function step(){
   if(!ticking||paused||dead)return;
@@ -93,32 +104,37 @@ function step(){
   } else { snake.pop(); }
   draw();
 }
-function startLoop(){if(ticking)return;ticking=setInterval(step,120);}
-function restart(){
+function restart(firstDir){
+  stopLoop();
   overlay.textContent='';
+  if(againBtn) againBtn.hidden=true;
   reset();
+  if(firstDir){ dir=firstDir; nextDir=firstDir; }
   draw();
   startLoop();
 }
 function applyDir(nd){
   if(!nd)return;
-  if(dead)return;
+  if(dead){ restart(nd); return; }
   if(nd.x===-dir.x&&nd.y===-dir.y)return;
   nextDir=nd;
-  if(!ticking){overlay.textContent='';startLoop();}
+  if(!ticking){ overlay.textContent=''; startLoop(); }
 }
 const keymap={ArrowUp:{x:0,y:-1},ArrowDown:{x:0,y:1},ArrowLeft:{x:-1,y:0},ArrowRight:{x:1,y:0},w:{x:0,y:-1},a:{x:-1,y:0},s:{x:0,y:1},d:{x:1,y:0},W:{x:0,y:-1},A:{x:-1,y:0},S:{x:0,y:1},D:{x:1,y:0}};
 document.addEventListener('keydown',e=>{
   if(e.key===' '||e.code==='Space'){
     e.preventDefault();
-    if(dead){restart();return;}
-    if(!ticking)return;
+    if(dead){ restart(); return; }
+    if(!ticking) return;
     paused=!paused;
     overlay.textContent=paused?'Paused':'';
     return;
   }
   applyDir(keymap[e.key]);
 });
+if(againBtn){
+  againBtn.addEventListener('click',()=>restart());
+}
 function touchPoint(e){
   const t=e.changedTouches[0];
   return {x:t.clientX,y:t.clientY};
@@ -135,10 +151,13 @@ canvas.addEventListener('touchend',e=>{
   const dx=end.x-touchStart.x;
   const dy=end.y-touchStart.y;
   touchStart=null;
-  if(dead){restart();return;}
-  if(Math.abs(dx)<20&&Math.abs(dy)<20)return;
-  if(Math.abs(dx)>Math.abs(dy)) applyDir({x:dx>0?1:-1,y:0});
-  else applyDir({x:0,y:dy>0?1:-1});
+  if(Math.abs(dx)<20&&Math.abs(dy)<20){
+    if(dead) restart();
+    return;
+  }
+  const nd=Math.abs(dx)>Math.abs(dy)?{x:dx>0?1:-1,y:0}:{x:0,y:dy>0?1:-1};
+  applyDir(nd);
 },{passive:false});
 reset();
 draw();
+if(againBtn) againBtn.hidden=true;
