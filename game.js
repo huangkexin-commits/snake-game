@@ -7,9 +7,10 @@ const ranksEl=document.getElementById('ranks');
 const againBtn=document.getElementById('again');
 const cover=document.getElementById('cover');
 const overMsg=document.getElementById('over-msg');
+const pauseBtn=document.getElementById('pause');
 const CELL=20, COLS=canvas.width/CELL, ROWS=canvas.height/CELL;
 const RANK_KEY='snake-top5';
-let snake,dir,nextDir,food,score,best,ticking,paused,dead,touchStart,ranks;
+let snake,dir,nextDir,food,score,best,ticking,paused,dead,started,touchStart,ranks,particles,tickMs;
 function loadRanks(){
   let arr=[];
   try { arr=JSON.parse(localStorage.getItem(RANK_KEY)||'[]'); } catch(e) { arr=[]; }
@@ -28,8 +29,7 @@ function renderRanks(){
   ranksEl.innerHTML='';
   for(let i=0;i<5;i++){
     const li=document.createElement('li');
-    const n=ranks[i];
-    li.innerHTML='<span>#'+(i+1)+'</span><span>'+(n==null?'--':n)+'</span>';
+    li.innerHTML='<span>#'+(i+1)+'</span><span>'+(ranks[i]==null?'--':ranks[i])+'</span>';
     ranksEl.appendChild(li);
   }
   best=ranks[0]||0;
@@ -49,132 +49,138 @@ renderRanks();
 function reset(firstDir){
   const cx=Math.floor(COLS/2),cy=Math.floor(ROWS/2);
   const d=firstDir||{x:1,y:0};
-  snake=[
-    {x:cx,y:cy},
-    {x:cx-d.x,y:cy-d.y},
-    {x:cx-2*d.x,y:cy-2*d.y}
-  ];
-  dir=d;
-  nextDir=d;
-  score=0;
-  scoreEl.textContent='0';
-  paused=false;
-  dead=false;
+  snake=[{x:cx,y:cy},{x:cx-d.x,y:cy-d.y},{x:cx-2*d.x,y:cy-2*d.y}];
+  dir=d; nextDir=d;
+  score=0; scoreEl.textContent='0';
+  paused=false; dead=false; particles=[]; tickMs=140;
   placeFood();
 }
 function placeFood(){
   for(;;){
-    const x=Math.floor(Math.random()*COLS),y=Math.floor(Math.random()*ROWS);
-    if(!snake.some(p=>p.x===x&&p.y===y)){food={x,y};return;}
+    const x=Math.floor(Math.random()*COLS), y=Math.floor(Math.random()*ROWS);
+    if(!snake.some(p=>p.x===x&&p.y===y)){ food={x,y}; return; }
   }
 }
-function drawCell(x,y,color){
+function burst(x,y){
+  for(let i=0;i<8;i++){
+    particles.push({x:(x+0.5)*CELL,y:(y+0.5)*CELL,vx:(Math.random()-0.5)*4,vy:(Math.random()-0.5)*4,life:12});
+  }
+}
+function roundCell(x,y,color,r){
+  const px=x*CELL+2, py=y*CELL+2, s=CELL-4;
   ctx.fillStyle=color;
-  ctx.fillRect(x*CELL+1,y*CELL+1,CELL-2,CELL-2);
+  ctx.beginPath();
+  ctx.roundRect(px,py,s,s,r);
+  ctx.fill();
 }
 function draw(){
-  ctx.fillStyle='#0e1116';
-  ctx.fillRect(0,0,canvas.width,canvas.height);
-  ctx.strokeStyle='#2a3140';
+  const g=ctx.createLinearGradient(0,0,0,canvas.height);
+  g.addColorStop(0,'#10263c'); g.addColorStop(1,'#071018');
+  ctx.fillStyle=g; ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.strokeStyle='rgba(255,255,255,.04)';
   for(let i=0;i<=COLS;i++){ctx.beginPath();ctx.moveTo(i*CELL,0);ctx.lineTo(i*CELL,canvas.height);ctx.stroke();}
   for(let j=0;j<=ROWS;j++){ctx.beginPath();ctx.moveTo(0,j*CELL);ctx.lineTo(canvas.width,j*CELL);ctx.stroke();}
-  drawCell(food.x,food.y,'#fb7185');
-  snake.forEach((p,i)=>drawCell(p.x,p.y,i===0?'#34d399':'#6ee7b7'));
+  ctx.fillStyle='#ff6b8a';
+  ctx.beginPath();
+  ctx.arc((food.x+0.5)*CELL,(food.y+0.5)*CELL,7,0,Math.PI*2);
+  ctx.fill();
+  ctx.fillStyle='#fff6';
+  ctx.beginPath();
+  ctx.arc((food.x+0.5)*CELL-2,(food.y+0.5)*CELL-2,2.2,0,Math.PI*2);
+  ctx.fill();
+  snake.forEach((p,i)=>{
+    roundCell(p.x,p.y, i===0 ? '#5ef0b6' : '#2fbf86', i===0?8:6);
+  });
+  const h=snake[0];
+  ctx.fillStyle='#042015';
+  const ex=h.x*CELL+CELL/2+dir.x*3, ey=h.y*CELL+CELL/2+dir.y*3;
+  ctx.beginPath(); ctx.arc(ex-3,ey-2,1.6,0,Math.PI*2); ctx.arc(ex+3,ey-2,1.6,0,Math.PI*2); ctx.fill();
+  particles.forEach(p=>{
+    ctx.globalAlpha=Math.max(p.life/12,0);
+    ctx.fillStyle='#ffd37a';
+    ctx.fillRect(p.x,p.y,3,3);
+    ctx.globalAlpha=1;
+  });
 }
-function stopLoop(){
-  if(ticking){ clearInterval(ticking); ticking=null; }
-}
+function stopLoop(){ if(ticking){ clearInterval(ticking); ticking=null; } }
 function startLoop(){
-  if(ticking) return;
-  ticking=setInterval(step,120);
+  stopLoop();
+  ticking=setInterval(step, tickMs);
 }
-function showCover(show){
-  if(!cover) return;
+function setCover(show, msg, btn){
   cover.hidden=!show;
+  if(msg!=null) overMsg.textContent=msg;
+  if(btn) againBtn.textContent=btn;
 }
 function die(){
-  dead=true;
-  paused=false;
+  dead=true; paused=false; started=true;
   stopLoop();
   recordScore(score);
-  overlay.textContent='';
-  if(overMsg) overMsg.textContent='Score '+score+'   Best '+best;
-  showCover(true);
+  setCover(true, 'Score '+score+'   Best '+best);
 }
 function step(){
-  if(!ticking||paused||dead)return;
+  if(!ticking||paused||dead) return;
   dir=nextDir;
   const head={x:snake[0].x+dir.x,y:snake[0].y+dir.y};
-  if(head.x<0||head.y<0||head.x>=COLS||head.y>=ROWS)return die();
-  if(snake.some(p=>p.x===head.x&&p.y===head.y))return die();
+  if(head.x<0||head.y<0||head.x>=COLS||head.y>=ROWS) return die();
+  if(snake.some(p=>p.x===head.x&&p.y===head.y)) return die();
   snake.unshift(head);
   if(head.x===food.x&&head.y===food.y){
-    score+=1;
-    scoreEl.textContent=String(score);
-    if(score>best){best=score;bestEl.textContent=String(best);}
+    score+=1; scoreEl.textContent=String(score);
+    if(score>best){ best=score; bestEl.textContent=String(best); }
+    burst(food.x,food.y);
     placeFood();
-  } else { snake.pop(); }
+    tickMs=Math.max(70, 140-Math.floor(score/3)*8);
+    startLoop();
+  } else snake.pop();
+  particles=particles.filter(p=>--p.life>0);
+  particles.forEach(p=>{ p.x+=p.vx; p.y+=p.vy; });
   draw();
 }
 function restart(firstDir){
-  stopLoop();
-  showCover(false);
-  overlay.textContent='';
+  started=true;
   reset(firstDir);
+  setCover(false);
+  overlay.textContent='';
   draw();
   startLoop();
 }
 function applyDir(nd){
-  if(!nd)return;
-  if(dead){ restart(nd); return; }
-  if(nd.x===-dir.x&&nd.y===-dir.y)return;
+  if(!nd) return;
+  if(!started||dead){ restart(nd); return; }
+  if(nd.x===-dir.x&&nd.y===-dir.y) return;
   nextDir=nd;
-  if(!ticking){ overlay.textContent=''; startLoop(); }
+  if(!ticking) startLoop();
 }
 const keymap={ArrowUp:{x:0,y:-1},ArrowDown:{x:0,y:1},ArrowLeft:{x:-1,y:0},ArrowRight:{x:1,y:0},w:{x:0,y:-1},a:{x:-1,y:0},s:{x:0,y:1},d:{x:1,y:0},W:{x:0,y:-1},A:{x:-1,y:0},S:{x:0,y:1},D:{x:1,y:0}};
 document.addEventListener('keydown',e=>{
   if(e.key===' '||e.code==='Space'||e.key==='Enter'){
     e.preventDefault();
-    if(dead){ restart(); return; }
-    if(!ticking) return;
+    if(!started||dead){ restart(); return; }
     paused=!paused;
     overlay.textContent=paused?'Paused':'';
     return;
   }
   applyDir(keymap[e.key]);
 });
-if(againBtn){
-  againBtn.addEventListener('click', e=>{ e.preventDefault(); restart(); });
-}
-if(cover){
-  cover.addEventListener('click', e=>{
-    if(e.target===againBtn) return;
-    if(dead) restart();
-  });
-}
-function touchPoint(e){
-  const t=e.changedTouches[0];
-  return {x:t.clientX,y:t.clientY};
-}
-canvas.addEventListener('touchstart',e=>{
-  e.preventDefault();
-  touchStart=touchPoint(e);
-},{passive:false});
-canvas.addEventListener('touchmove',e=>{e.preventDefault();},{passive:false});
+againBtn.addEventListener('click', e=>{ e.preventDefault(); restart(); });
+pauseBtn.addEventListener('click', ()=>{
+  if(!started||dead) return;
+  paused=!paused;
+  overlay.textContent=paused?'Paused':'';
+});
+function touchPoint(e){ const t=e.changedTouches[0]; return {x:t.clientX,y:t.clientY}; }
+canvas.addEventListener('touchstart',e=>{ e.preventDefault(); touchStart=touchPoint(e); },{passive:false});
+canvas.addEventListener('touchmove',e=>{ e.preventDefault(); },{passive:false});
 canvas.addEventListener('touchend',e=>{
   e.preventDefault();
-  if(!touchStart)return;
+  if(!touchStart) return;
   const end=touchPoint(e);
-  const dx=end.x-touchStart.x;
-  const dy=end.y-touchStart.y;
+  const dx=end.x-touchStart.x, dy=end.y-touchStart.y;
   touchStart=null;
-  if(Math.abs(dx)<20&&Math.abs(dy)<20){
-    if(dead) restart();
-    return;
-  }
-  const nd=Math.abs(dx)>Math.abs(dy)?{x:dx>0?1:-1,y:0}:{x:0,y:dy>0?1:-1};
-  applyDir(nd);
+  if(Math.abs(dx)<20&&Math.abs(dy)<20){ if(!started||dead) restart(); return; }
+  applyDir(Math.abs(dx)>Math.abs(dy)?{x:dx>0?1:-1,y:0}:{x:0,y:dy>0?1:-1});
 },{passive:false});
 reset();
 draw();
-showCover(false);
+setCover(true, document.querySelector('h1').textContent, document.getElementById('again').textContent);
